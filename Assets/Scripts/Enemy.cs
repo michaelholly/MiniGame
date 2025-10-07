@@ -38,7 +38,16 @@ public class Enemy : MonoBehaviour
         if (collision.gameObject.CompareTag("Player"))
         {
             Debug.Log("Player hit by enemy!");
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+
+            var player = collision.gameObject.GetComponent<PlayerController_6>();
+            if (player == null || player.Lives < 1)
+            {
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            }
+            else
+            {
+                player.Lives--;
+            }
         }
     }
 }

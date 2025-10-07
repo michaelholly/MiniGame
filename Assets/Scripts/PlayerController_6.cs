@@ -1,15 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
-[System.Serializable]
-public class S_Array
-{
-    public Renderer[] renderers;
-}
+[Serializable]
+public class PlayerLifeChangeEvent: UnityEvent<int> { }
 
-[RequireComponent(typeof(Rigidbody2D))]
-public class PlayerController_4 : MonoBehaviour
+[RequireComponent(typeof(Rigidbody2D), typeof(Animator))]
+public class PlayerController_6 : MonoBehaviour
 {
     [Header("Player Movement")]
     [SerializeField] private float speed;
@@ -21,30 +19,49 @@ public class PlayerController_4 : MonoBehaviour
     [SerializeField] private float checkRadius;
     [SerializeField] private LayerMask whatIsGround;
 
-    [Header("Count")] 
+    [Header("Count")]
     [SerializeField] private Text countText;
+    [SerializeField] private AudioClip coinCollectSound;
 
-
-    [SerializeField] private List<S_Array> listarray;
-
+    private int _lives = 3;
     private int _count;
     private Rigidbody2D _rigidbody;
+    private Animator _animator;
 
     private bool _facingRight = true;
     private int _extraJumpValue;
 
     private bool IsGrounded => Physics2D.OverlapCircle(groundCheck.position, checkRadius, whatIsGround);
-    
+
+    public int Lives
+    {
+        get 
+        { 
+            return _lives; 
+        }
+
+        set 
+        {
+            _lives = value;
+            OnPlayerLifeChanged.Invoke(_lives);
+        }
+    }
+    public PlayerLifeChangeEvent OnPlayerLifeChanged;
+
     private void Start()
     {
         _rigidbody = GetComponent<Rigidbody2D>();
+        _animator = GetComponent<Animator>();
         _extraJumpValue = extraJumps;
     }
 
     private void Update()
     {
         var moveInput = Input.GetAxis("Horizontal");
-        Debug.Log(moveInput);
+        //Debug.Log(moveInput);
+
+        var isRunning = Mathf.Abs(moveInput) > 0.1f;
+        _animator.SetBool("isRunning", isRunning);
 
         _rigidbody.velocity = new Vector2(moveInput * speed, _rigidbody.velocity.y);
 
@@ -56,12 +73,14 @@ public class PlayerController_4 : MonoBehaviour
         if (IsGrounded)
         {
             _extraJumpValue = extraJumps;
+            _animator.SetBool("isJumping", false);
         }
 
         if (Input.GetButtonDown("Jump") && 
             (IsGrounded || _extraJumpValue-- > 0))
         {
-                _rigidbody.velocity = Vector2.up * jumpForce;
+            _animator.SetBool("isJumping", true);
+            _rigidbody.velocity = Vector2.up * jumpForce;
         }
     }
 
@@ -82,6 +101,7 @@ public class PlayerController_4 : MonoBehaviour
         _count++;
         countText.text = $"Count: {_count}";
 
+        GetComponent<AudioSource>().PlayOneShot(coinCollectSound);
         other.gameObject.SetActive(false);
     }
 }
